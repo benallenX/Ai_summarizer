@@ -1,12 +1,52 @@
 import React, { useState, useEffect } from 'react'
 import {copy, linkIcon, loader, tick} from '../assets'
+import {useLaxyGetSummaryQuery} from '../services/article'
 const Demo = () => {
+  const [article, setArticle] = useState({
+    url: '',
+    summary: '',
+  })
+  const [allArticles, setAllArticles] = useState([])
+  const [copied, setCopied] = useState('')
+
+  //RTK lazy query
+  const [getSummary, { error, isFetching }] = useLazyGetSummaryQuery()
+  
+  //Load data from localStorage on mount
+  useEffect(() => {
+    const articlesFromLocalStorage = JSON.parse(
+      localStorage.getItem('articles')
+    )
+    if (articlesFromLocalStorage) {
+      setAllArticles(articlesFromLocalStorage)
+    }
+  }, [])
+  
+  const handleSubmit = async (e) => {
+    //Prevent default form submit behavior and clear the input field after submission 
+    e.preventDefault()
+
+    const existingArticle = allArticles.find
+      ((item) => item.url === article.url)
+    if (existingArticle) return setArticle(existingArticle)
+    
+    const { data } = await getSummary({ articleUrl: article.url })
+    if (data?.summary) {
+      const newArticle = { ...article, summary: data.summary }
+      const updateAllArticles = [newArticle, ...allArticles]
+
+      //update state and local storage
+      setArticle(newArticle)
+      setAllArticles(updateAllArticles)
+      localStorage.setItem('articles', JSON.stringify(updateAllArticles))
+    }
+  }
   return (
     <section className='mt-16 w-full max-w-xl'>
       {/* Search */}
       <div className='flex flex-col w-full gap-2'>
         <form className='relative flex justify-center items-center'
-          //onSubmit={ }
+          onSubmit={handleSubmit }
         >
           <img
             src={linkIcon}
